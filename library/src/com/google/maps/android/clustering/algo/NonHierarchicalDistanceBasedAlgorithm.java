@@ -32,6 +32,7 @@ import com.google.maps.android.quadtree.PointQuadTree;
  */
 public class NonHierarchicalDistanceBasedAlgorithm<T extends ClusterItem> implements Algorithm<T> {
     public static final int MAX_DISTANCE_AT_ZOOM = 100; // essentially 100 dp.
+    private static final boolean BARYCENTER = true;
 
     /**
      * Any modifications should be synchronized on mQuadTree.
@@ -84,7 +85,7 @@ public class NonHierarchicalDistanceBasedAlgorithm<T extends ClusterItem> implem
         final Set<QuadItem<T>> visitedCandidates = new HashSet<QuadItem<T>>();
         final Set<Cluster<T>> results = new HashSet<Cluster<T>>();
         final Map<QuadItem<T>, Double> distanceToCluster = new HashMap<QuadItem<T>, Double>();
-        final Map<QuadItem<T>, StaticCluster<T>> itemToCluster = new HashMap<QuadItem<T>, StaticCluster<T>>();
+        final Map<QuadItem<T>, SimpleCluster<T>> itemToCluster = new HashMap<QuadItem<T>, SimpleCluster<T>>();
 
         synchronized (mQuadTree) {
             for (QuadItem<T> candidate : mItems) {
@@ -103,7 +104,13 @@ public class NonHierarchicalDistanceBasedAlgorithm<T extends ClusterItem> implem
                     distanceToCluster.put(candidate, 0d);
                     continue;
                 }
-                StaticCluster<T> cluster = new StaticCluster<T>(candidate.mClusterItem.getPosition());
+
+                SimpleCluster<T> cluster;
+                if (BARYCENTER) {
+                    cluster = new SimpleCluster<T>();
+                } else {
+                    cluster = new SimpleCluster<T>(candidate.mClusterItem.getPosition());
+                }
                 results.add(cluster);
 
                 for (QuadItem<T> clusterItem : clusterItems) {
@@ -122,6 +129,12 @@ public class NonHierarchicalDistanceBasedAlgorithm<T extends ClusterItem> implem
                     itemToCluster.put(clusterItem, cluster);
                 }
                 visitedCandidates.addAll(clusterItems);
+            }
+        }
+        if (BARYCENTER) {
+            for (Cluster<T> item : results) {
+                // Initialize cluster's position
+                item.getPosition();
             }
         }
         return results;
